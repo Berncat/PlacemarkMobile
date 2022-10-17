@@ -14,6 +14,7 @@ import com.example.placemark.R
 import com.example.placemark.databinding.ActivityPlacemarkBinding
 import com.example.placemark.helpers.showImagePicker
 import com.example.placemark.main.MainApp
+import com.example.placemark.models.Location
 import com.example.placemark.models.PlacemarkModel
 import com.google.android.material.snackbar.Snackbar
 import com.squareup.picasso.Picasso
@@ -22,7 +23,9 @@ import timber.log.Timber.i
 class PlacemarkActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPlacemarkBinding
     private lateinit var imageIntentLauncher : ActivityResultLauncher<Intent>
+    private lateinit var mapIntentLauncher : ActivityResultLauncher<Intent>
     var placemark = PlacemarkModel()
+    // var location = Location(52.245696, -7.139102, 15f)
     lateinit var app: MainApp
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +73,21 @@ class PlacemarkActivity : AppCompatActivity() {
             showImagePicker(imageIntentLauncher)
         }
         registerImagePickerCallback()
+
+
+        binding.placemarkLocation.setOnClickListener {
+            val location = Location(52.245696, -7.139102, 15f)
+            if (placemark.zoom != 0f) {
+                location.lat =  placemark.lat
+                location.lng = placemark.lng
+                location.zoom = placemark.zoom
+            }
+            val launcherIntent = Intent(this, MapActivity::class.java)
+                .putExtra("location", location)
+            mapIntentLauncher.launch(launcherIntent)
+        }
+        registerMapCallback()
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -102,6 +120,27 @@ class PlacemarkActivity : AppCompatActivity() {
                         } // end of if
                     }
                     RESULT_CANCELED -> { } else -> { }
+                }
+            }
+    }
+
+    private fun registerMapCallback() {
+        mapIntentLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult())
+            { result ->
+                when (result.resultCode) {
+                    RESULT_OK -> {
+                        if (result.data != null) {
+                            i("Got Location ${result.data.toString()}")
+                            val location = result.data!!.extras?.getParcelable<Location>("location")!!
+                            i("Location == $location")
+                            placemark.lat = location.lat
+                            placemark.lng = location.lng
+                            placemark.zoom = location.zoom
+                        } // end of if
+                    }
+                    RESULT_CANCELED -> {}
+                    else -> {}
                 }
             }
     }
